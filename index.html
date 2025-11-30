@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gel Factory Matrix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- MATRIX THEME CONFIGURATION --- */
+        :root {
+            --bg-color: #000000;
+            --fg-color: #00FF41;
+            --accent-color: #003B00;
+            --input-bg: #0D0208;
+            --border-color: #008F11;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+            font-family: 'Courier New', Courier, monospace; /* Consolas-like */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #001100;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--fg-color);
+            border-radius: 2px;
+        }
+
+        /* Matrix Input Styles */
+        .matrix-input {
+            background-color: var(--input-bg);
+            color: var(--fg-color);
+            border: 1px solid var(--accent-color);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            border-radius: 0; /* Matrix look is sharp */
+        }
+        .matrix-input:focus {
+            border-color: var(--fg-color);
+            box-shadow: 0 0 5px var(--fg-color);
+        }
+
+        /* Matrix Button Styles */
+        .matrix-btn {
+            background-color: #001100;
+            color: var(--fg-color);
+            border: 1px solid var(--fg-color);
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .matrix-btn:hover {
+            background-color: var(--fg-color);
+            color: black;
+            box-shadow: 0 0 10px var(--fg-color);
+        }
+        .matrix-btn-danger {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+        .matrix-btn-danger:hover {
+            background-color: #ff0000;
+            color: white;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        /* Table/Grid Layout */
+        .grid-header {
+            border-bottom: 2px solid var(--border-color);
+            color: var(--border-color);
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        /* Result Box Glow */
+        .result-box {
+            border: 1px solid var(--border-color);
+            background: rgba(0, 59, 0, 0.2);
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.1);
+        }
+
+        /* CRT Scanline Effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        
+        /* Glitch Text Effect */
+        .glitch-text {
+            text-shadow: 2px 0 #008F11, -2px 0 #003B00;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-2 md:p-8 crt relative overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="mb-4 border-b border-green-900 pb-2 md:pb-4">
+        <div class="text-xs md:text-sm text-green-700 font-bold mb-1">>_ SYSTEM.INIT(MOBILE_READY)</div>
+        <h1 class="text-2xl md:text-4xl font-bold tracking-wider glitch-text">DISH WASH MATRIX</h1>
+    </header>
+
+    <!-- Control Deck -->
+    <section class="mb-4 border border-green-900 p-3 rounded bg-black relative z-10">
+        <div class="absolute -top-3 left-4 bg-black px-2 text-green-700 font-bold text-xs">[ CONTROL DECK ]</div>
+        
+        <div class="flex flex-col md:flex-row gap-3 justify-between items-center mt-2">
+            <!-- Method Selector -->
+            <div class="w-full md:w-auto flex flex-col md:flex-row items-start md:items-center gap-2">
+                <label class="text-green-700 font-bold text-xs md:text-sm">METHOD:</label>
+                <select id="methodSelect" class="matrix-input p-2 w-full md:w-64 text-sm" onchange="changeMethod()">
+                    <option value="gel">Dish Washing Liquid (Gel)</option>
+                    <option value="soap">Soap Bar Preparation</option>
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-3 gap-2 w-full md:w-auto">
+                <button onclick="saveSession()" class="matrix-btn px-2 py-2 text-xs flex justify-center items-center gap-1">
+                    <span>💾</span> SAVE
+                </button>
+                <button onclick="document.getElementById('fileInput').click()" class="matrix-btn px-2 py-2 text-xs flex justify-center items-center gap-1">
+                    <span>📂</span> LOAD
+                </button>
+                <input type="file" id="fileInput" class="hidden" accept=".json" onchange="loadSession(this)">
+                <button onclick="clearAll()" class="matrix-btn matrix-btn-danger px-2 py-2 text-xs flex justify-center items-center gap-1">
+                    <span>🗑</span> CLEAR
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Dashboard -->
+    <section class="mb-4 border border-green-900 p-4 rounded bg-black relative z-10">
+        <div class="absolute -top-3 left-4 bg-black px-2 text-green-700 font-bold text-xs">[ METRICS ]</div>
+        
+        <div class="grid grid-cols-3 gap-2 mt-2">
+            <!-- Box 1 -->
+            <div class="result-box p-2 flex flex-col items-center justify-center text-center">
+                <span class="text-green-700 text-[10px] md:text-xs mb-1">COST/KG</span>
+                <span id="res-per-kg" class="text-lg md:text-3xl font-bold break-all">0</span>
+            </div>
+            <!-- Box 2 -->
+            <div class="result-box p-2 flex flex-col items-center justify-center text-center">
+                <span class="text-green-700 text-[10px] md:text-xs mb-1">TOTAL COST</span>
+                <span id="res-total-cost" class="text-lg md:text-3xl font-bold break-all">0</span>
+            </div>
+            <!-- Box 3 -->
+            <div class="result-box p-2 flex flex-col items-center justify-center text-center">
+                <span class="text-green-700 text-[10px] md:text-xs mb-1">WEIGHT</span>
+                <span id="res-total-weight" class="text-lg md:text-3xl font-bold break-all">0</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ingredients List -->
+    <section class="flex-grow border border-green-900 p-2 md:p-4 rounded bg-black relative flex flex-col z-10">
+        <div class="absolute -top-3 left-4 bg-black px-2 text-green-700 font-bold text-xs">[ INGREDIENTS ]</div>
+
+        <!-- Toolbar -->
+        <div class="flex justify-end mb-2 mt-1">
+            <button onclick="addIngredient()" class="matrix-btn px-4 py-1 text-xs bg-green-900/20 w-full md:w-auto">
+                [+] INSERT INGREDIENT
+            </button>
+        </div>
+
+        <!-- Header Row (Desktop Only) -->
+        <div class="grid grid-cols-12 gap-2 mb-2 px-2 grid-header pb-2 hidden md:grid">
+            <div class="col-span-4">NAME</div>
+            <div class="col-span-3">PRICE</div>
+            <div class="col-span-3">WEIGHT</div>
+            <div class="col-span-1">UNIT</div>
+            <div class="col-span-1 text-center">DEL</div>
+        </div>
+
+        <!-- Scrollable List -->
+        <div id="ingredients-list" class="flex-grow overflow-y-auto space-y-2 pb-8" style="max-height: 50vh;">
+            <!-- Rows will be injected here by JS -->
+        </div>
+    </section>
+
+    <!-- Animated Footer -->
+    <footer class="mt-4 pb-4 text-center h-12 flex items-center justify-center z-10">
+        <div class="text-lg md:text-xl font-bold tracking-widest text-green-500">
+            <span id="typewriter"></span><span class="animate-pulse">_</span>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA & STATE ---
+        let ingredients = [];
+        let nextId = 1;
+
+        // Presets
+        const PRESETS = {
+            "gel": [
+                { name: "Water_Purified", price: 0, weight: 10, unit: "kg" },
+                { name: "LABSA_Acid", price: 1000, weight: 1, unit: "kg" },
+                { name: "Caustic_Soda", price: 1500, weight: 150, unit: "g" },
+                { name: "SLES_Texapon", price: 2200, weight: 500, unit: "g" }
+            ],
+            "soap": [
+                { name: "Oils (Fatty Acid)", price: 1500, weight: 10, unit: "kg" },
+                { name: "Water", price: 250, weight: 3, unit: "kg" },
+                { name: "NaOH (Lye)", price: 1250, weight: 1.5, unit: "kg" },
+                { name: "Perfume", price: 25000, weight: 100, unit: "g" },
+                { name: "Coloring", price: 15000, weight: 10, unit: "g" }
+            ]
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function init() {
+            loadPreset("gel");
+            startFooterAnimation();
+        }
+
+        function loadPreset(type) {
+            ingredients = [];
+            const data = PRESETS[type];
+            data.forEach(item => {
+                addIngredient(item.name, item.price, item.weight, item.unit);
+            });
+            render();
+            calculate();
+        }
+
+        function changeMethod() {
+            const val = document.getElementById("methodSelect").value;
+            loadPreset(val);
+        }
+
+        function addIngredient(name="", price=0, weight=0, unit="kg") {
+            const id = nextId++;
+            ingredients.push({ id, name, price, weight, unit });
+            render();
+            calculate();
+        }
+
+        function removeIngredient(id) {
+            ingredients = ingredients.filter(i => i.id !== id);
+            render();
+            calculate();
+        }
+
+        function clearAll() {
+            ingredients = [];
+            render();
+            calculate();
+        }
+
+        function updateIngredient(id, field, value) {
+            const ing = ingredients.find(i => i.id === id);
+            if (ing) {
+                ing[field] = value;
+                calculate();
+            }
+        }
+
+        function calculate() {
+            let totalCost = 0;
+            let totalWeightKg = 0;
+
+            ingredients.forEach(ing => {
+                const p = parseFloat(ing.price) || 0;
+                const w = parseFloat(ing.weight) || 0;
+                const weightInKg = ing.unit === "g" ? w / 1000 : w;
+                
+                totalCost += p * weightInKg;
+                totalWeightKg += weightInKg;
+            });
+
+            const costPerKg = totalWeightKg > 0 ? (totalCost / totalWeightKg) : 0;
+
+            // Format numbers nicely
+            const fmt = (num) => num.toLocaleString(undefined, {maximumFractionDigits: 0});
+            const fmtKg = (num) => num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            document.getElementById("res-total-cost").innerText = fmt(totalCost);
+            document.getElementById("res-total-weight").innerText = fmtKg(totalWeightKg);
+            document.getElementById("res-per-kg").innerText = fmt(costPerKg);
+        }
+
+        // --- RENDERING ---
+
+        function render() {
+            const container = document.getElementById("ingredients-list");
+            container.innerHTML = "";
+
+            ingredients.forEach(ing => {
+                const row = document.createElement("div");
+                // Mobile: 12-column grid. 
+                // Name takes full width (12). 
+                // Price takes 5, Weight takes 5, Unit takes 2.
+                // Remove button is full width at bottom or floated.
+                row.className = "grid grid-cols-12 gap-2 bg-green-900/10 p-2 rounded items-center mb-2 border border-green-900/30 relative";
+                
+                row.innerHTML = `
+                    <!-- Name (Full Width on Mobile) -->
+                    <div class="col-span-12 md:col-span-4">
+                        <input type="text" placeholder="Name" value="${ing.name}" 
+                            class="matrix-input w-full p-2 text-sm font-bold"
+                            oninput="updateIngredient(${ing.id}, 'name', this.value)">
+                    </div>
+
+                    <!-- Price (Half Width Mobile) -->
+                    <div class="col-span-5 md:col-span-3">
+                        <input type="number" placeholder="Price" value="${ing.price}" 
+                            class="matrix-input w-full p-2 text-sm text-right"
+                            oninput="updateIngredient(${ing.id}, 'price', this.value)">
+                    </div>
+
+                    <!-- Weight (Half Width Mobile) -->
+                    <div class="col-span-4 md:col-span-3">
+                        <input type="number" placeholder="Wgt" value="${ing.weight}" 
+                            class="matrix-input w-full p-2 text-sm text-right"
+                            oninput="updateIngredient(${ing.id}, 'weight', this.value)">
+                    </div>
+
+                    <!-- Unit (Small Mobile) -->
+                    <div class="col-span-3 md:col-span-1">
+                        <select class="matrix-input w-full p-2 text-sm"
+                            onchange="updateIngredient(${ing.id}, 'unit', this.value)">
+                            <option value="kg" ${ing.unit === 'kg' ? 'selected' : ''}>kg</option>
+                            <option value="g" ${ing.unit === 'g' ? 'selected' : ''}>g</option>
+                        </select>
+                    </div>
+
+                    <!-- Remove (Absolute on Mobile or Column on Desktop) -->
+                    <div class="col-span-12 md:col-span-1 mt-1 md:mt-0 text-center">
+                        <button onclick="removeIngredient(${ing.id})" 
+                            class="w-full md:w-auto text-red-500 hover:text-white font-bold px-2 py-1 border border-red-900 hover:bg-red-900 rounded bg-red-900/10 text-xs">
+                            DELETE
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // --- SAVE / LOAD ---
+
+        function saveSession() {
+            const data = {
+                method: document.getElementById("methodSelect").value,
+                ingredients: ingredients
+            };
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "factory_data.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function loadSession(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.method) document.getElementById("methodSelect").value = data.method;
+                    if (Array.isArray(data.ingredients)) {
+                        nextId = 1;
+                        ingredients = data.ingredients.map(item => ({...item, id: nextId++}));
+                    }
+                    render();
+                    calculate();
+                } catch (err) {
+                    alert("Error parsing file");
+                }
+            };
+            reader.readAsText(file);
+            input.value = ''; 
+        }
+
+        // --- ANIMATION LOOP ---
+
+        const footerText = "NIHAD INDUSTRIES";
+        const typingSpeed = 150;
+        const deletingSpeed = 75;
+        const pauseTime = 2000;
+        
+        let charIndex = 0;
+        let isDeleting = false;
+
+        function startFooterAnimation() {
+            const typeWriter = () => {
+                const el = document.getElementById("typewriter");
+                
+                if (!isDeleting && charIndex <= footerText.length) {
+                    // Typing
+                    el.innerText = footerText.substring(0, charIndex);
+                    charIndex++;
+                    setTimeout(typeWriter, typingSpeed);
+                } else if (isDeleting && charIndex >= 0) {
+                    // Deleting
+                    el.innerText = footerText.substring(0, charIndex);
+                    charIndex--;
+                    setTimeout(typeWriter, deletingSpeed);
+                } else if (charIndex > footerText.length) {
+                    // Finished Typing, Pause before deleting
+                    isDeleting = true;
+                    setTimeout(typeWriter, pauseTime);
+                } else if (charIndex < 0) {
+                    // Finished Deleting, restart
+                    isDeleting = false;
+                    charIndex = 0;
+                    setTimeout(typeWriter, 500);
+                }
+            };
+            typeWriter();
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
