@@ -1,1 +1,2 @@
-# gell-wash
+# gell-wash app source code are belong to tccglab.com team ,and cant be used for company or group or personally without contacting the the developer :nihad R Al nihad.ali@staff.uoz.edu.krd 
+contact for usage........
